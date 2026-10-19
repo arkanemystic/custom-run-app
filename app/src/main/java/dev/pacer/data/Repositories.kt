@@ -31,7 +31,7 @@ class PresetRepository(private val dao: PresetDao, private val settings: Setting
 }
 
 class RunRepository(private val dao: RunDao) {
-    val savedRuns: Flow<List<RunEntity>> = dao.observeSaved()
+    val history: Flow<List<RunEntity>> = dao.observeHistory()
 
     fun observe(id: Long) = dao.observe(id)
 
