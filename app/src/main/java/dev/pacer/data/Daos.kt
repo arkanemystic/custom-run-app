@@ -41,8 +41,9 @@ interface RunDao {
     @Query("SELECT * FROM runs WHERE status = 'ACTIVE' ORDER BY id DESC LIMIT 1")
     suspend fun active(): RunEntity?
 
-    @Query("SELECT * FROM runs WHERE status = 'SAVED' ORDER BY startWallMs DESC")
-    fun observeSaved(): Flow<List<RunEntity>>
+    /** Finished runs, including ones never explicitly saved (e.g. the app was closed on the summary). */
+    @Query("SELECT * FROM runs WHERE status != 'ACTIVE' ORDER BY startWallMs DESC")
+    fun observeHistory(): Flow<List<RunEntity>>
 
     @Query("DELETE FROM runs WHERE id = :id")
     suspend fun delete(id: Long)
