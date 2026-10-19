@@ -16,6 +16,8 @@ data class Workout(
     val walk: Step,
     val cooldown: Step,
     val toleranceSec: Int = DEFAULT_TOLERANCE_SEC,
+    /** Walk pace wobbles by about ±15 s/mi from GPS noise alone, so walks get a wider band. */
+    val walkToleranceSec: Int = DEFAULT_WALK_TOLERANCE_SEC,
 ) {
     fun intervals(): List<Interval> = buildList {
         if (warmup.durationSec > 0) add(Interval(IntervalKind.WARMUP, 0, warmup))
@@ -37,6 +39,7 @@ data class Workout(
 
     companion object {
         const val DEFAULT_TOLERANCE_SEC = 15
+        const val DEFAULT_WALK_TOLERANCE_SEC = 30
 
         val STARTER = Workout(
             name = "Run/Walk 8x1:00",
@@ -67,15 +70,19 @@ data class Interval(val kind: IntervalKind, val rep: Int, val durationSec: Int, 
 
 /** What the run is following: a preset's intervals, or a free run with an optional target. */
 sealed interface Plan {
-    val toleranceSec: Int
     val title: String
 
+    /** Tolerance band for [interval] (null for a free run). */
+    fun toleranceFor(interval: Interval?): Int
+
     data class Intervals(val workout: Workout) : Plan {
-        override val toleranceSec get() = workout.toleranceSec
         override val title get() = workout.title()
+        override fun toleranceFor(interval: Interval?) =
+            if (interval?.kind == IntervalKind.WALK) workout.walkToleranceSec else workout.toleranceSec
     }
 
-    data class Free(val targetPaceSec: Int?, override val toleranceSec: Int = Workout.DEFAULT_TOLERANCE_SEC) : Plan {
+    data class Free(val targetPaceSec: Int?, val toleranceSec: Int = Workout.DEFAULT_TOLERANCE_SEC) : Plan {
         override val title get() = "Free run"
+        override fun toleranceFor(interval: Interval?) = toleranceSec
     }
 }

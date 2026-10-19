@@ -32,6 +32,7 @@ class RunSession(
         val targetPaceSec: Int?,
         val paceStatus: PaceStatus,
         val paused: Boolean,
+        val toleranceSec: Int,
     )
 
     data class IntervalResult(val interval: Interval, val movingMs: Long, val distanceM: Double) {
@@ -96,7 +97,7 @@ class RunSession(
                 // Average over the last 20 s, ignoring the first 5 s of the interval while speed changes.
                 val from = maxOf(nowMs - COACH_WINDOW_MS, nowMs - s.elapsedInIntervalMs + COACH_SKIP_MS)
                 coach.evaluate(
-                    moving, s.elapsedInIntervalMs, s.remainingMs, s.interval!!.targetPaceSec, plan.toleranceSec,
+                    moving, s.elapsedInIntervalMs, s.remainingMs, s.interval!!.targetPaceSec, plan.toleranceFor(s.interval),
                     live.averagePaceSecPerMile(from, nowMs),
                 )
             }
@@ -127,10 +128,12 @@ class RunSession(
         val moving = clock.movingMs(nowMs)
         val pace = live.paceSecPerMile(nowMs)
         val target = targetPaceSec(nowMs)
+        val ivState = if (engine.intervals.isEmpty()) null else engine.state(moving)
+        val tol = plan.toleranceFor(ivState?.interval)
         val status = when {
             target == null || pace == null -> PaceStatus.NONE
-            pace > target + plan.toleranceSec -> PaceStatus.TOO_SLOW
-            pace < target - plan.toleranceSec -> PaceStatus.TOO_FAST
+            pace > target + tol -> PaceStatus.TOO_SLOW
+            pace < target - tol -> PaceStatus.TOO_FAST
             else -> PaceStatus.IN_BAND
         }
         return Snapshot(
@@ -141,10 +144,11 @@ class RunSession(
             lastMile = miles.lastMile(moving),
             lastSplitMs = miles.splitsMs.lastOrNull(),
             avgPaceSec = paceSecPerMile(moving, distanceM),
-            interval = if (engine.intervals.isEmpty()) null else engine.state(moving),
+            interval = ivState,
             targetPaceSec = target,
             paceStatus = status,
             paused = clock.isPaused,
+            toleranceSec = tol,
         )
     }
 
