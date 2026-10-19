@@ -1,8 +1,12 @@
 package dev.pacer.ui
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -185,10 +189,22 @@ private fun Actions(r: RunEntity, points: List<TrackPoint>, onDone: () -> Unit, 
                 OutlinedButton(onClick = onDelete, Modifier.weight(1f)) { Text("Discard") }
             }
         }
+        val saver = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gpx+xml")) { uri ->
+            if (uri != null) scope.launch {
+                val ok = runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(gpxText(r, points).toByteArray()) }
+                    }
+                }
+                toast(context, ok.fold({ "GPX saved" }, { "Couldn't save GPX: ${it.message}" }))
+            }
+        }
         Row(horizontalArrangement = Gap) {
             OutlinedButton(
-                onClick = { scope.launch { shareGpx(context, r, points) } },
-                enabled = points.isNotEmpty(),
+                onClick = {
+                    if (points.isEmpty()) toast(context, "No GPS points were recorded for this run")
+                    else saver.launch(gpxFileName(r))
+                },
                 modifier = Modifier.weight(1f),
             ) { Text("Export GPX") }
             OutlinedButton(
@@ -196,8 +212,14 @@ private fun Actions(r: RunEntity, points: List<TrackPoint>, onDone: () -> Unit, 
                 modifier = Modifier.weight(1f),
             ) { Text("Upload to Strava") }
         }
+        TextButton(onClick = {
+            if (points.isEmpty()) toast(context, "No GPS points were recorded for this run")
+            else scope.launch {
+                runCatching { shareGpx(context, r, points) }.onFailure { toast(context, "Couldn't share GPX: ${it.message}") }
+            }
+        }) { Text("Share GPX…") }
         Text(
-            "Strava upload: Export GPX and save it to Files, then Upload to Strava and choose the file.",
+            "Strava upload: Export GPX (e.g. to Downloads), then Upload to Strava and choose the file.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (r.status == RunStatus.SAVED) TextButton(onClick = onDelete) { Text("Delete run") }
@@ -218,19 +240,29 @@ private fun Line(a: String, b: String) {
     }
 }
 
+private fun gpxText(r: RunEntity, points: List<TrackPoint>): String {
+    val desc = RunDescription.of(r.decodedPlan(), r.distanceM, r.movingMs, Codec.decodeSplits(r.splits), Codec.decodeIntervals(r.intervals))
+    return Gpx.write(r.title, desc, points)
+}
+
+private fun gpxFileName(r: RunEntity): String =
+    "Pacer_" + java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(Date(r.startWallMs)) + ".gpx"
+
+private fun toast(context: Context, text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+
 private suspend fun shareGpx(context: Context, r: RunEntity, points: List<TrackPoint>) {
     val file = withContext(Dispatchers.IO) {
-        val desc = RunDescription.of(r.decodedPlan(), r.distanceM, r.movingMs, Codec.decodeSplits(r.splits), Codec.decodeIntervals(r.intervals))
         val dir = File(context.cacheDir, "gpx").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(Date(r.startWallMs))
-        File(dir, "Pacer_$stamp.gpx").apply { writeText(Gpx.write(r.title, desc, points)) }
+        File(dir, gpxFileName(r)).apply { writeText(gpxText(r, points)) }
     }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+    // Few apps register for application/gpx+xml, so share as a generic file to reach Drive, Files, Gmail etc.
     val send = Intent(Intent.ACTION_SEND)
-        .setType("application/gpx+xml")
+        .setType("application/octet-stream")
         .putExtra(Intent.EXTRA_STREAM, uri)
         .putExtra(Intent.EXTRA_SUBJECT, r.title)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    context.startActivity(Intent.createChooser(send, "Export GPX"))
+    send.clipData = ClipData.newRawUri(file.name, uri)
+    context.startActivity(Intent.createChooser(send, "Share GPX"))
 }

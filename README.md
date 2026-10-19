@@ -55,7 +55,7 @@ Without these secrets CI still builds and tests, but it won't publish to the `la
 
 Pacer doesn't use the Strava API, because creating an API application now costs money. Upload by hand instead:
 
-1. On the run summary (after Stop, or from **History**), tap **Export GPX** and save the file, e.g. to **Files > Downloads**.
+1. On the run summary (after Stop, or from **History**), tap **Export GPX**. Android's save screen opens; pick **Downloads** and tap **Save**. (**Share GPX…** sends the file to an app instead.)
 2. Tap **Upload to Strava**. This opens strava.com/upload/select. Sign in if asked, choose the file, and save.
 
 The GPX file is GPX 1.1 with a timestamp and elevation on every point. Each pause starts a new track segment, so Strava doesn't count paused time as moving. The description summarizes the workout, splits and run-interval paces.
