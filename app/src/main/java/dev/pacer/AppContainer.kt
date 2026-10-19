@@ -8,6 +8,7 @@ import dev.pacer.data.Settings
 import dev.pacer.data.SettingsRepository
 import dev.pacer.location.FusedLocationSource
 import dev.pacer.location.LocationSource
+import dev.pacer.location.MockLocationSource
 import dev.pacer.service.CuePlayer
 import dev.pacer.service.Cues
 
@@ -19,7 +20,15 @@ class AppContainer(context: Context) {
     val presets by lazy { PresetRepository(db.presets(), settings) }
     val runs by lazy { RunRepository(db.runs()) }
 
-    fun createLocationSource(context: Context, settings: Settings): LocationSource = FusedLocationSource(context)
+    /** Every installed build is a debug build; the mock is still opt-in from Settings. */
+    fun createLocationSource(context: Context, settings: Settings): LocationSource =
+        if (BuildConfig.DEBUG && settings.mockLocation) {
+            MockLocationSource(context, settings.mockPaceSec, mockGpxFile)
+        } else {
+            FusedLocationSource(context)
+        }
+
+    val mockGpxFile get() = java.io.File(app.filesDir, "mock.gpx")
 
     fun createCues(context: Context): Cues = CuePlayer(context)
 }

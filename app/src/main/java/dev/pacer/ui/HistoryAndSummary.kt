@@ -123,6 +123,16 @@ fun SummaryScreen(runId: Long, onDone: () -> Unit) {
                     Metric("Avg pace", formatPace(paceSecPerMile(r.movingMs, r.distanceM)), Modifier.weight(1f))
                     Metric("Elapsed", formatDuration(r.elapsedMs), Modifier.weight(1f))
                 }
+                if (points.isNotEmpty()) {
+                    // Track continuity check (pauses excluded): the screen-off test looks at this.
+                    val gap = points.zipWithNext().filter { !it.second.segmentStart }
+                        .maxOfOrNull { it.second.wallTimeMs - it.first.wallTimeMs } ?: 0
+                    Text(
+                        "GPS: ${points.size} points, longest gap ${"%.1f".format(gap / 1000.0)} s",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
                 Actions(r, points, onDone, onDelete = { confirmDelete = true })
             }
         }

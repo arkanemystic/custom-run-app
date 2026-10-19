@@ -11,7 +11,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,9 +63,25 @@ fun SettingsScreen(onBack: () -> Unit) {
                 "Next run replays a synthetic route instead of GPS",
             )
             if (s.mockLocation) {
-                Stepper("Mock pace", "${formatMmSs(s.mockPaceSec)} /mi", {
-                    scope.launch { repo.setMockPace(PresetEditor.pace(s.mockPaceSec, it * 15)) }
-                })
+                val gpx = context.container.mockGpxFile
+                var hasGpx by remember { mutableStateOf(gpx.exists()) }
+                val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                    if (uri != null) scope.launch {
+                        withContext(Dispatchers.IO) {
+                            context.contentResolver.openInputStream(uri)?.use { input -> gpx.outputStream().use { input.copyTo(it) } }
+                        }
+                        hasGpx = gpx.exists()
+                    }
+                }
+                if (hasGpx) {
+                    Text("Replaying a GPX file", style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { gpx.delete(); hasGpx = false }) { Text("Use synthetic loop instead") }
+                } else {
+                    Stepper("Synthetic loop pace", "${formatMmSs(s.mockPaceSec)} /mi", {
+                        scope.launch { repo.setMockPace(PresetEditor.pace(s.mockPaceSec, it * 15)) }
+                    })
+                    TextButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Replay a GPX file instead…") }
+                }
             }
         }
         Text("Pacer ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 24.dp))
