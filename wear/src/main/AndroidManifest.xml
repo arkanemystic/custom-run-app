@@ -16,7 +16,7 @@
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="Pacer"
-        android:theme="@android:style/Theme.DeviceDefault">
+        android:theme="@style/Theme.PacerWear">
 
         <!-- Works without the phone; the phone only supplies presets and receives finished runs. -->
         <meta-data

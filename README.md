@@ -53,8 +53,25 @@ Updates install over the old version the same way and keep any runs not yet sync
 ### First run on the watch
 
 1. Open **Pacer** on the watch. Tap **Allow location** and choose **While using the app**. Allow notifications when you tap **Start**.
-2. Pick a workout (scroll down) and tap **Start**. Swipe left during the run for **Pause** and **Hold stop** (hold the button 1.5 s).
-3. Lowering your wrist switches to the dim always-on screen, which updates once a minute. Pace and interval also show in the watch face's ongoing-activity icon.
+2. **Turn the bezel** to scroll the list, pick a workout and tap **Start**.
+3. During the run there are two screens, shown by the dots at the bottom:
+   - **Stats:** interval and time left, live pace, a target arrow (▲ faster / ▼ slower / ● on pace), distance and average. The ring around the edge fills as the interval goes by: green for runs, blue for walks.
+   - **Controls:** **Pause/Resume** (tap) and **End** (hold 1.5 s until the red ring fills).
+   Switch between them by **turning the bezel**, **pressing the Back button** (the lower button), or swiping. Swipe-to-close is off during a run so a stray swipe can't close it. Use the Home button to leave the app; the run keeps going.
+4. Lowering your wrist switches to the dim always-on screen, which updates once a minute. Pace and interval also show in the watch face's ongoing-activity icon.
+
+### Vibration patterns (phone and watch)
+
+| Pattern | Feels like |
+|---|---|
+| **Speed up** | rapid flutter: five quick taps |
+| **Slow down** | two long, slow throbs |
+| Run starts | three sharp taps |
+| Walk starts | one long buzz |
+| Warm-up / cool-down starts | long buzz, then a short tap |
+| 3-2-1 countdown | one tiny tick per second |
+| Mile done | two quick taps |
+| Workout done | long, short, long |
 
 ### Watch battery
 
@@ -75,7 +92,7 @@ The watch follows the same rules as the phone:
 
 The watch has no mock-location mode, so test it on a short walk outside:
 1. Start **Run/Walk 8x1:00** with the screen off (lower your wrist).
-2. You should feel a long buzz after 5:00 for the run interval, three short buzzes for walk, and ticks for the 3-2-1 countdown.
+2. You should feel three ticks (3-2-1), then three sharp taps at 5:00 as the first run starts, and one long buzz at 6:00 for the walk. If you walk the run intervals, you'll feel the speed-up flutter about 15 s in.
 3. Pause and resume from the second page, then hold Stop.
 4. On the phone (Bluetooth on), within a minute or two the run should appear in **History** as "… (watch)", with its route and the GPS "longest gap" line.
 

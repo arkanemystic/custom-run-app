@@ -10,8 +10,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import dev.pacer.core.Coach
-import dev.pacer.core.IntervalKind
+import dev.pacer.core.HapticPattern
 import dev.pacer.core.RunSession
 import dev.pacer.core.RunSession.Event
 import dev.pacer.core.Speech
@@ -80,49 +79,36 @@ class CuePlayer(context: Context) : Cues {
             when (e) {
                 is Event.Countdown -> {
                     if (settings.voice) speak("${e.n}")
-                    if (settings.haptics) vibrate(TICK)
+                    if (settings.haptics) vibrate(HapticPattern.TICK)
                 }
                 is Event.IntervalStarted -> {
                     if (settings.voice) speak(Speech.intervalStart(e.interval))
-                    if (settings.haptics) vibrate(
-                        when (e.interval.kind) {
-                            IntervalKind.RUN -> RUN
-                            IntervalKind.WALK -> WALK
-                            else -> EASY
-                        },
-                    )
+                    if (settings.haptics) vibrate(HapticPattern.forInterval(e.interval.kind))
                 }
                 Event.WorkoutFinished -> {
                     if (settings.voice) speak(Speech.WORKOUT_DONE)
-                    if (settings.haptics) vibrate(DONE)
+                    if (settings.haptics) vibrate(HapticPattern.DONE)
                 }
                 is Event.Coaching -> if (settings.coaching) {
                     if (settings.voice) speak(Speech.coach(e.cue))
-                    if (settings.haptics) vibrate(if (e.cue.verdict == Coach.Verdict.SPEED_UP) SPEED_UP else SLOW_DOWN)
+                    if (settings.haptics) vibrate(HapticPattern.forCoaching(e.cue.verdict))
                 }
-                is Event.MileSplit -> if (settings.mileCues && settings.voice) {
-                    speak(Speech.mile(e.mile, e.splitMs / 1000.0, e.avgPaceSec))
+                is Event.MileSplit -> if (settings.mileCues) {
+                    if (settings.voice) speak(Speech.mile(e.mile, e.splitMs / 1000.0, e.avgPaceSec))
+                    if (settings.haptics) vibrate(HapticPattern.MILE)
                 }
             }
         }
     }
 
-    private fun vibrate(p: LongArray) = vibrator.vibrate(VibrationEffect.createWaveform(p, -1))
+    private fun vibrate(p: HapticPattern) = vibrator.vibrate(
+        if (vibrator.hasAmplitudeControl()) VibrationEffect.createWaveform(p.timings, p.amplitudes, -1)
+        else VibrationEffect.createWaveform(p.timings, -1),
+    )
 
     override fun release() {
         tts.stop()
         tts.shutdown()
         audio.abandonAudioFocusRequest(focus)
-    }
-
-    private companion object {
-        // off/on timings in ms. Run: three sharp pulses. Walk: one long. Others: two medium.
-        val TICK = longArrayOf(0, 40)
-        val RUN = longArrayOf(0, 120, 80, 120, 80, 120)
-        val WALK = longArrayOf(0, 600)
-        val EASY = longArrayOf(0, 250, 150, 250)
-        val DONE = longArrayOf(0, 500, 150, 150, 150, 500)
-        val SPEED_UP = longArrayOf(0, 70, 70, 70)
-        val SLOW_DOWN = longArrayOf(0, 300)
     }
 }

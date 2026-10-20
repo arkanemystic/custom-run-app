@@ -11,8 +11,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import dev.pacer.core.Coach
-import dev.pacer.core.IntervalKind
+import dev.pacer.core.HapticPattern
 import dev.pacer.core.RunSession.Event
 import dev.pacer.core.Speech
 import dev.pacer.core.SyncConfig
@@ -41,29 +40,29 @@ class WearCues(private val context: Context) {
 
     fun handle(events: List<Event>, cfg: SyncConfig) {
         for (e in events) when (e) {
-            is Event.Countdown -> { say("${e.n}", cfg); buzz(TICK, cfg) }
+            is Event.Countdown -> { say("${e.n}", cfg); buzz(HapticPattern.TICK, cfg) }
             is Event.IntervalStarted -> {
                 say(Speech.intervalStart(e.interval), cfg)
-                buzz(
-                    when (e.interval.kind) {
-                        IntervalKind.RUN -> RUN
-                        IntervalKind.WALK -> WALK
-                        else -> EASY
-                    },
-                    cfg,
-                )
+                buzz(HapticPattern.forInterval(e.interval.kind), cfg)
             }
-            Event.WorkoutFinished -> { say(Speech.WORKOUT_DONE, cfg); buzz(DONE, cfg) }
+            Event.WorkoutFinished -> { say(Speech.WORKOUT_DONE, cfg); buzz(HapticPattern.DONE, cfg) }
             is Event.Coaching -> if (cfg.coaching) {
                 say(Speech.coach(e.cue), cfg)
-                buzz(if (e.cue.verdict == Coach.Verdict.SPEED_UP) SPEED_UP else SLOW_DOWN, cfg)
+                buzz(HapticPattern.forCoaching(e.cue.verdict), cfg)
             }
-            is Event.MileSplit -> if (cfg.mileCues) { say(Speech.mile(e.mile, e.splitMs / 1000.0, e.avgPaceSec), cfg); buzz(EASY, cfg) }
+            is Event.MileSplit -> if (cfg.mileCues) {
+                say(Speech.mile(e.mile, e.splitMs / 1000.0, e.avgPaceSec), cfg)
+                buzz(HapticPattern.MILE, cfg)
+            }
         }
     }
 
-    private fun buzz(p: LongArray, cfg: SyncConfig) {
-        if (cfg.haptics) vibrator.vibrate(VibrationEffect.createWaveform(p, -1))
+    private fun buzz(p: HapticPattern, cfg: SyncConfig) {
+        if (!cfg.haptics) return
+        vibrator.vibrate(
+            if (vibrator.hasAmplitudeControl()) VibrationEffect.createWaveform(p.timings, p.amplitudes, -1)
+            else VibrationEffect.createWaveform(p.timings, -1),
+        )
     }
 
     private fun headphones() = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any {
@@ -111,15 +110,5 @@ class WearCues(private val context: Context) {
         tts?.shutdown()
         tts = null
         audio.abandonAudioFocusRequest(focus)
-    }
-
-    private companion object {
-        val TICK = longArrayOf(0, 60)
-        val RUN = longArrayOf(0, 150, 100, 150, 100, 150)
-        val WALK = longArrayOf(0, 700)
-        val EASY = longArrayOf(0, 300, 200, 300)
-        val DONE = longArrayOf(0, 600, 200, 200, 200, 600)
-        val SPEED_UP = longArrayOf(0, 90, 90, 90)
-        val SLOW_DOWN = longArrayOf(0, 400)
     }
 }
