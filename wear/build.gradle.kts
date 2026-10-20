@@ -36,6 +36,14 @@ android {
         debug {
             if (keystoreFile != null) signingConfig = signingConfigs.getByName("pacer")
         }
+        // What CI ships to the watch. Compose in a debug build is unoptimized and visibly janky on
+        // watch hardware; R8 plus the libraries' baseline profiles make the UI smooth.
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName(if (keystoreFile != null) "pacer" else "debug")
+        }
     }
 
     compileOptions {
@@ -61,6 +69,7 @@ dependencies {
     implementation(libs.wear.compose.foundation)
     implementation(libs.wear.ongoing)
     implementation(libs.wear)
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.play.services.location)
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.android)

@@ -1,0 +1,8 @@
+<resources>
+    <!-- Swipe-to-dismiss off: during a run a stray swipe must not close the screen. The physical
+         back button and the bezel do navigation instead. -->
+    <style name="Theme.PacerWear" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowSwipeToDismiss">false</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
