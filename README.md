@@ -4,6 +4,7 @@ A battery-first running app for a Google Pixel, for sideloading only. It tracks 
 
 - [Install on your phone](#install-on-your-phone)
 - [First run](#first-run-permissions)
+- [Watch app (Wear OS)](#watch-app-wear-os)
 - [Repository secrets](#repository-secrets)
 - [Uploading to Strava](#uploading-to-strava)
 - [Battery](#battery)
@@ -13,7 +14,7 @@ A battery-first running app for a Google Pixel, for sideloading only. It tracks 
 
 ## Install on your phone
 
-Every push to `main` builds a signed APK and attaches it to the release tagged **latest**, replacing the previous file.
+Every push to `main` builds signed APKs and attaches them to the release tagged **latest**, replacing the previous files: `pacer.apk` (phone) and `pacer-wear.apk` (watch, see [Watch app](#watch-app-wear-os)).
 
 1. On the Pixel, open **https://github.com/arkanemystic/custom-run-app/releases/tag/latest** in Chrome and tap **pacer.apk**.
 2. The first time, Android asks to allow installs from Chrome: tap **Settings**, turn on **Allow from this source**, then go back.
@@ -30,6 +31,53 @@ Later builds install over the old one and keep your history, because every build
 > ⚠️ **Don't run with Extreme Battery Saver on.** It pauses apps that aren't on its allow list, including foreground services, so tracking and cues stop. Normal Battery Saver is OK (Pacer warns you about it), but location may be throttled with the screen off.
 
 If Android ever kills a run (you'd see a gap or cues stop), exempt Pacer from battery optimization: **Settings > Apps > Pacer > App battery usage > Unrestricted**. It isn't requested by default because a foreground service normally doesn't need it. If the app process does get killed mid-run, reopening Pacer resumes the run from its last save (at most 30 s of track can be lost).
+
+## Watch app (Wear OS)
+
+`pacer-wear.apk` runs on its own on a Galaxy Watch4 Classic (Wear OS 4 or later), with no phone needed during the run. It uses the watch's GPS, runs the same intervals, coaching and pace math as the phone, and buzzes your wrist. Voice cues play only when Bluetooth earbuds are connected to the watch. Finished runs copy to the phone's **History** (marked "(watch)", not yet saved) the next time the watch and phone connect. Export GPX or upload to Strava from there.
+
+Workouts and cue settings are edited in the phone app and sync to the watch automatically. Open Pacer on the phone once after installing the watch app.
+
+### Install with a phone installer app (no computer)
+
+A watch can't install an APK from a browser, so a free phone app pushes it over Wi-Fi. These steps use **Wear Installer 2** from the Play Store; similar apps work the same way.
+
+1. **Turn on developer options on the watch:** Settings > About watch > Software information, then tap **Software version** 5 times.
+2. **Turn on debugging:** Settings > Developer options. Turn on **ADB debugging** and **Debug over Wi-Fi** (called **Wireless debugging** on newer versions). The watch and phone must be on the same Wi-Fi network. Note the IP address shown. If there's a **Pair new device** option, tap it and keep the pairing code on screen.
+3. **Download the APK on the phone:** open https://github.com/arkanemystic/custom-run-app/releases/download/latest/pacer-wear.apk in Chrome.
+4. **Install it:** open Wear Installer 2, enter the watch's IP (and the pairing code if asked), accept the prompt on the watch, choose **Custom APK**, pick `pacer-wear.apk` from Downloads, and install.
+5. **Turn ADB and Wi-Fi debugging off again on the watch.** Leaving Wi-Fi debugging on keeps the watch's Wi-Fi awake and drains the battery.
+
+Updates install over the old version the same way and keep any runs not yet synced, because every build is signed with the same key.
+
+### First run on the watch
+
+1. Open **Pacer** on the watch. Tap **Allow location** and choose **While using the app**. Allow notifications when you tap **Start**.
+2. Pick a workout (scroll down) and tap **Start**. Swipe left during the run for **Pause** and **Hold stop** (hold the button 1.5 s).
+3. Lowering your wrist switches to the dim always-on screen, which updates once a minute. Pace and interval also show in the watch face's ongoing-activity icon.
+
+### Watch battery
+
+The watch follows the same rules as the phone:
+- **GPS:** full power once per second only while running, low power while paused, off when stopped.
+- **One wake lock**, only while running, so cues are on time with the screen off.
+- **Light rendering:** the dim screen redraws once a minute; the ongoing-activity status and notification refresh every 30 s with the screen off.
+- **Storage:** runs are written to files in batches every 30 s.
+- **No map** on the watch.
+
+**Speech:** it never starts a speech engine unless earbuds are connected.
+
+**Phone nearby:** if the phone is connected during a run, Wear OS may use the phone's location instead of the watch GPS, which saves watch battery.
+
+**Expected use:** roughly 10–15% of a Watch4's battery per 30 minutes is typical for 1 Hz GPS. I couldn't measure it. Check it under Settings > Battery on the watch.
+
+### Watch test (at a desk)
+
+The watch has no mock-location mode, so test it on a short walk outside:
+1. Start **Run/Walk 8x1:00** with the screen off (lower your wrist).
+2. You should feel a long buzz after 5:00 for the run interval, three short buzzes for walk, and ticks for the 3-2-1 countdown.
+3. Pause and resume from the second page, then hold Stop.
+4. On the phone (Bluetooth on), within a minute or two the run should appear in **History** as "… (watch)", with its route and the GPS "longest gap" line.
 
 ## Repository secrets
 

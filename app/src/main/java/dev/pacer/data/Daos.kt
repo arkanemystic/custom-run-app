@@ -45,6 +45,9 @@ interface RunDao {
     @Query("SELECT * FROM runs WHERE status != 'ACTIVE' ORDER BY startWallMs DESC")
     fun observeHistory(): Flow<List<RunEntity>>
 
+    @Query("SELECT COUNT(*) FROM runs WHERE startWallMs = :startWallMs")
+    suspend fun countStartingAt(startWallMs: Long): Int
+
     @Query("DELETE FROM runs WHERE id = :id")
     suspend fun delete(id: Long)
 
