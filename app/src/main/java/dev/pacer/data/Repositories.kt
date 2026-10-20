@@ -2,6 +2,7 @@ package dev.pacer.data
 
 import dev.pacer.core.Codec
 import dev.pacer.core.Plan
+import dev.pacer.core.RunArchive
 import dev.pacer.core.RunClock
 import dev.pacer.core.RunSession
 import dev.pacer.core.TrackPoint
@@ -63,6 +64,24 @@ class RunRepository(private val dao: RunDao) {
     suspend fun finishAbandoned(r: RunEntity) {
         val last = dao.points(r.id).lastOrNull()
         dao.update(r.copy(status = RunStatus.FINISHED, endWallMs = last?.wallTimeMs ?: r.startWallMs))
+    }
+
+    /**
+     * Adds a run recorded on the watch as an unsaved run in History. Returns false if it was
+     * already imported (the watch re-sends until the phone confirms).
+     */
+    suspend fun importArchive(a: RunArchive): Boolean {
+        if (dao.countStartingAt(a.startWallMs) > 0) return false
+        val id = dao.insert(
+            RunEntity(
+                status = RunStatus.FINISHED, title = a.title + " (watch)", plan = Codec.encodePlan(a.plan),
+                startWallMs = a.startWallMs, endWallMs = a.endWallMs, clockStartMs = 0, clockSegmentStartMs = null,
+                bootCount = -1, distanceM = a.distanceM, movingMs = a.movingMs, elapsedMs = a.elapsedMs,
+                splits = Codec.encodeSplits(a.splitsMs), intervals = Codec.encodeIntervals(a.intervals),
+            ),
+        )
+        dao.insertPoints(a.points.map { PointEntity.from(id, it) })
+        return true
     }
 
     suspend fun markSaved(runId: Long) {

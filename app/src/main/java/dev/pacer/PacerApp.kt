@@ -16,6 +16,7 @@ class PacerApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         appScope.launch { container.presets.seedIfFirstLaunch() }
+        dev.pacer.data.publishWatchConfig(this, appScope)
     }
 }
 

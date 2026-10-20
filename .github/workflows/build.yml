@@ -46,15 +46,18 @@ jobs:
       - name: Unit tests
         run: ./gradlew test
 
-      - name: Build debug APK
+      - name: Build debug APKs (phone and watch)
         run: |
           ./gradlew assembleDebug
           cp app/build/outputs/apk/debug/app-debug.apk pacer.apk
+          cp wear/build/outputs/apk/debug/wear-debug.apk pacer-wear.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pacer-apk
-          path: pacer.apk
+          name: pacer-apks
+          path: |
+            pacer.apk
+            pacer-wear.apk
           if-no-files-found: error
 
       - name: Publish to rolling "latest" release
@@ -64,10 +67,10 @@ jobs:
         run: |
           git tag -f latest
           git push -f origin refs/tags/latest
-          notes="Build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}. Download pacer.apk below on your phone to install."
+          notes="Build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}. pacer.apk is the phone app; pacer-wear.apk is the watch app (install it with a phone-to-watch installer, see the README)."
           if gh release view latest >/dev/null 2>&1; then
             gh release edit latest --notes "$notes" --latest
           else
             gh release create latest --title "Pacer (latest)" --notes "$notes" --latest
           fi
-          gh release upload latest pacer.apk --clobber
+          gh release upload latest pacer.apk pacer-wear.apk --clobber
