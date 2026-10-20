@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Pacer"
-include(":core", ":app")
+include(":core", ":app", ":wear")
