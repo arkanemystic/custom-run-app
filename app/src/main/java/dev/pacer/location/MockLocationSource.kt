@@ -75,7 +75,9 @@ class MockLocationSource(
             val p = pts[replayIndex % pts.size]
             val next = pts[(replayIndex + 1) % pts.size]
             replayIndex++
-            val dt = if (p.timeMs != null && next.timeMs != null && next.timeMs > p.timeMs) (next.timeMs - p.timeMs).coerceAtMost(5_000) else 1_000
+            val t0 = p.timeMs
+            val t1 = next.timeMs
+            val dt = if (t0 != null && t1 != null && t1 > t0) (t1 - t0).coerceAtMost(5_000) else 1_000
             val speed = haversineMeters(p.lat, p.lon, next.lat, next.lon) / (dt / 1000.0)
             l(fix(p.lat, p.lon, speed, p.ele))
             return dt
